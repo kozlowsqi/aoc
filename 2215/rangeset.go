@@ -4,20 +4,6 @@ type set struct {
 	min, max int
 }
 
-func (s *set) n() int {
-	return s.max - s.min
-}
-
-func add(a, b set) set {
-	a.min = min(a.min, b.min)
-	a.max = max(a.max, b.max)
-	return a
-}
-
-func overlap(a, b set) bool {
-	return a.min <= b.max && b.min <= a.max
-}
-
 type rangeset struct {
 	sets []set
 }
@@ -26,12 +12,13 @@ func (rs *rangeset) add(a set) {
 
 	var sets []set
 	for _, b := range rs.sets {
-		if !overlap(a, b) {
+		if a.min > b.max || b.min > a.max {
 			sets = append(sets, b)
 			continue
 		}
 
-		a = add(a, b)
+		a.min = min(a.min, b.min)
+		a.max = max(a.max, b.max)
 	}
 
 	rs.sets = sort(append(sets, a))
@@ -40,7 +27,7 @@ func (rs *rangeset) add(a set) {
 func (rs *rangeset) sum() int {
 	var sum int
 	for _, b := range rs.sets {
-		sum += b.n()
+		sum += b.max - b.min
 	}
 
 	return sum
@@ -50,7 +37,7 @@ func (rs *rangeset) clip(a set) {
 
 	var sets []set
 	for _, b := range rs.sets {
-		if overlap(a, b) {
+		if a.min <= b.max && b.min <= a.max {
 			sets = append(sets, set{min: max(a.min, b.min), max: min(a.max, b.max)})
 		}
 	}

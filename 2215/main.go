@@ -9,41 +9,23 @@ import (
 //go:embed *.input
 var input embed.FS
 
-type sensor struct {
-	x1, y1 int
-	x2, y2 int
-}
-
-func (s *sensor) d() int {
-	return abs(s.x1-s.x2) + abs(s.y1-s.y2)
-}
-
-func (s *sensor) dy(y int) int {
-	return abs(s.y1 - y)
-}
-
-func (s *sensor) dydx(y int) int {
-	return s.d() - s.dy(y)
-}
-
-func (s *sensor) in(y int) bool {
-	return s.dy(y) <= s.d()
-}
-
 func p1(f io.Reader, y int) string {
 	rs := rangeset{}
 	for {
-		var s sensor
-		_, err := fmt.Fscanf(f, "Sensor at x=%d, y=%d: closest beacon is at x=%d, y=%d", &s.x1, &s.y1, &s.x2, &s.y2)
+		var x1, y1, x2, y2 int
+		_, err := fmt.Fscanf(f, "Sensor at x=%d, y=%d: closest beacon is at x=%d, y=%d", &x1, &y1, &x2, &y2)
 		if err != nil {
 			break
 		}
 
-		if !s.in(y) {
+		d := abs(x1-x2) + abs(y1-y2)
+		dy := abs(y1 - y)
+
+		if d < dy {
 			continue
 		}
 
-		rs.add(set{s.x1 - s.dydx(y), s.x1 + s.dydx(y)})
+		rs.add(set{x1 - d + dy, x1 + d - dy})
 	}
 
 	return fmt.Sprint(rs.sum())
@@ -53,14 +35,16 @@ func p2(f io.Reader, m int) string {
 	rs := make([]rangeset, m+1)
 
 	for {
-		var s sensor
-		_, err := fmt.Fscanf(f, "Sensor at x=%d, y=%d: closest beacon is at x=%d, y=%d", &s.x1, &s.y1, &s.x2, &s.y2)
+		var x1, y1, x2, y2 int
+		_, err := fmt.Fscanf(f, "Sensor at x=%d, y=%d: closest beacon is at x=%d, y=%d", &x1, &y1, &x2, &y2)
 		if err != nil {
 			break
 		}
 
-		for y := max(0, s.y1-s.d()); y <= min(s.y1+s.d(), m); y++ {
-			rs[y].add(set{s.x1 - s.dydx(y), s.x1 + s.dydx(y)})
+		d := abs(x1-x2) + abs(y1-y2)
+		for y := max(0, y1-d); y <= min(y1+d, m); y++ {
+			dy := abs(y1 - y)
+			rs[y].add(set{x1 - d + dy, x1 + d - dy})
 		}
 	}
 
@@ -72,7 +56,7 @@ func p2(f io.Reader, m int) string {
 		}
 	}
 
-	panic("yeah, there are potential edge cases this doesn't cover...")
+	panic("edge case")
 }
 
 func main() {
